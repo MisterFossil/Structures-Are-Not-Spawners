@@ -13,8 +13,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSpawnOverride;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -93,16 +91,16 @@ public final class SANSEvents {
 
     private static List<Match> findMatchingStructures(ServerLevel level, net.minecraft.core.BlockPos pos,
                                                        EntityType<?> entityType) {
-        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         List<Match> matches = new ArrayList<>();
-        ResourceLocation entityId = registryKey(level, entityType);
+        ResourceLocation entityId = level.registryAccess().registryOrThrow(Registries.ENTITY_TYPE).getKey(entityType);
         if (entityId == null) return matches;
 
         for (Config.Rule rule : Config.rules()) {
             if (!rule.entityIds().contains(entityId)) continue;
             StructureStart start = findNearestStructure(level, pos, rule);
-            if (start == StructureStart.INVALID_START) continue;
-            matches.add(new Match(rule, start));
+            if (start != StructureStart.INVALID_START) {
+                matches.add(new Match(rule, start));
+            }
         }
         return matches;
     }
@@ -124,16 +122,11 @@ public final class SANSEvents {
         StructureStart start = level.structureManager().getStructureAt(located.getFirst(), structure);
         if (start == StructureStart.INVALID_START) return StructureStart.INVALID_START;
 
-        double distanceSqr = AABB.of(start.getBoundingBox()).distanceToSqr(Vec3.atCenterOf(pos));
-        return distanceSqr <= (double) rule.radius() * rule.radius() ? start : StructureStart.INVALID_START;
-    }
-
-    private static ResourceLocation registryKey(ServerLevel level, EntityType<?> entityType) {
-        return level.registryAccess().registryOrThrow(Registries.ENTITY_TYPE).getKey(entityType);
-    }
-
-    private static String key(ResourceLocation structureId, StructureStart start) {
-        return structureId + "@" + start.getChunkPos().toLong();
+        net.minecraft.world.level.ChunkPos center = start.getChunkPos();
+        double dx = center.getMiddleBlockX() - pos.getX();
+        double dz = center.getMiddleBlockZ() - pos.getZ();
+        return dx * dx + dz * dz <= (double) rule.radius() * rule.radius()
+                ? start : StructureStart.INVALID_START;
     }
 
     private record Match(Config.Rule rule, StructureStart start) {}
