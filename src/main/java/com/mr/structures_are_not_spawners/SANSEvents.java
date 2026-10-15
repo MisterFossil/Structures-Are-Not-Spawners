@@ -1,5 +1,6 @@
 package com.mr.structures_are_not_spawners;
 
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
@@ -10,14 +11,13 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSpawnOverride;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-
-import com.mojang.datafixers.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,8 +30,6 @@ public final class SANSEvents {
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getEntity().level() instanceof ServerLevel level)) return;
         LivingEntity victim = event.getEntity();
-        if (victim.getRemovalReason() != null) return;
-
         EntityType<?> type = victim.getType();
         if (Config.rules().isEmpty()) return;
 
@@ -60,8 +58,7 @@ public final class SANSEvents {
     }
 
     public static boolean shouldSuppressStructureSpawn(ServerLevel level, net.minecraft.core.BlockPos pos,
-                                                        Structure structure,
-                                                        net.minecraft.world.level.levelgen.structure.StructureSpawnOverride override,
+                                                        Structure structure, StructureSpawnOverride override,
                                                         boolean original) {
         if (!original || Config.rules().isEmpty()) return original;
 
@@ -70,8 +67,6 @@ public final class SANSEvents {
 
         for (Config.Rule rule : Config.rules()) {
             if (!rule.structureId().equals(structureId)) continue;
-            StructureStart start = level.structureManager().getStructureAt(pos, structure);
-            if (start == StructureStart.INVALID_START) return original;
 
             boolean overrideContainsConfiguredEntity = override.spawns().unwrap().map(
                     list -> list.stream().anyMatch(entry -> rule.entityIds().contains(
@@ -80,6 +75,9 @@ public final class SANSEvents {
                     tag -> false
             );
             if (!overrideContainsConfiguredEntity) return original;
+
+            StructureStart start = findNearestStructure(level, pos, rule);
+            if (start == StructureStart.INVALID_START) return original;
 
             StructureProgressData data = level.getDataStorage().computeIfAbsent(StructureProgressData.TYPE);
             String key = key(rule.structureId(), start);
@@ -97,28 +95,37 @@ public final class SANSEvents {
                                                        EntityType<?> entityType) {
         Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
         List<Match> matches = new ArrayList<>();
+        ResourceLocation entityId = registryKey(level, entityType);
+        if (entityId == null) return matches;
 
         for (Config.Rule rule : Config.rules()) {
-            ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, rule.structureId());
-            Holder<Structure> holder = registry.getHolder(key).orElse(null);
-            Structure structure = registry.get(rule.structureId());
-            if (holder == null || structure == null || !rule.entityIds().contains(registryKey(level, entityType))) continue;
-
-            int radiusChunks = Math.max(1, (rule.radius() + 15) / 16);
-            HolderSet<Structure> structures = HolderSet.direct(holder);
-            Pair<net.minecraft.core.BlockPos, Holder<Structure>> located =
-                    level.findNearestMapStructure(structures, pos, radiusChunks, false);
-            if (located == null) continue;
-
-            StructureStart start = level.structureManager().getStructureAt(located.getFirst(), structure);
+            if (!rule.entityIds().contains(entityId)) continue;
+            StructureStart start = findNearestStructure(level, pos, rule);
             if (start == StructureStart.INVALID_START) continue;
-
-            double distanceSqr = AABB.of(start.getBoundingBox()).distanceToSqr(Vec3.atCenterOf(pos));
-            if (distanceSqr <= (double) rule.radius() * rule.radius()) {
-                matches.add(new Match(rule, start));
-            }
+            matches.add(new Match(rule, start));
         }
         return matches;
+    }
+
+    private static StructureStart findNearestStructure(ServerLevel level, net.minecraft.core.BlockPos pos,
+                                                        Config.Rule rule) {
+        Registry<Structure> registry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
+        ResourceKey<Structure> key = ResourceKey.create(Registries.STRUCTURE, rule.structureId());
+        Holder<Structure> holder = registry.getHolder(key).orElse(null);
+        Structure structure = registry.get(rule.structureId());
+        if (holder == null || structure == null) return StructureStart.INVALID_START;
+
+        int radiusChunks = Math.max(1, (rule.radius() + 15) / 16);
+        HolderSet<Structure> structures = HolderSet.direct(holder);
+        Pair<net.minecraft.core.BlockPos, Holder<Structure>> located =
+                level.findNearestMapStructure(structures, pos, radiusChunks, false);
+        if (located == null) return StructureStart.INVALID_START;
+
+        StructureStart start = level.structureManager().getStructureAt(located.getFirst(), structure);
+        if (start == StructureStart.INVALID_START) return StructureStart.INVALID_START;
+
+        double distanceSqr = AABB.of(start.getBoundingBox()).distanceToSqr(Vec3.atCenterOf(pos));
+        return distanceSqr <= (double) rule.radius() * rule.radius() ? start : StructureStart.INVALID_START;
     }
 
     private static ResourceLocation registryKey(ServerLevel level, EntityType<?> entityType) {
