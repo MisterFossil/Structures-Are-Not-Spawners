@@ -1,49 +1,63 @@
 # Structures Are Not Spawners (SANS)
 
-SANS prevents configured Minecraft structures from acting as effectively endless mob spawners after their associated enemies have been killed in sufficient numbers.
+SANS stops configured structures from continuing to spawn their configured mobs after enough of those mobs have died nearby.
 
-## Target
+## Supported versions
 
 - Minecraft 1.21.1
-- NeoForge 21.1.211+
+- NeoForge 21.1.211 or newer in the 21.1 line
 - Java 21
+
+The mixin targets Minecraft 1.21.1 internals, so the mod metadata intentionally does not claim compatibility with 1.21.2 or later.
 
 ## Default rules
 
-| Structure | Counted entities | Kills | Radius |
+| Structure | Counted entities | Required deaths | Counting radius |
 | --- | --- | ---: | ---: |
-| Ocean Monument | Guardian, Elder Guardian | 20 | 96 blocks |
+| Ocean Monument (`minecraft:monument`) | Guardian, Elder Guardian | 20 | 96 blocks |
 | Pillager Outpost | Pillager | 10 | 96 blocks |
 
-The rules are server-side and configurable in `config/structures_are_not_spawners-common.toml`.
+Rules are server-side and stored in `config/structures_are_not_spawners-common.toml`.
+Optional integrations are listed separately under `moddedRules`; they activate only while their required mod is loaded. Set `enableModdedRules` to `false` to disable all built-in modded rules. A custom `rules` entry takes precedence over an optional rule for the same structure.
 
 ## Rule format
+
+Each rule is one line in this format:
 
 ```text
 structure_id|entity_id,entity_id|required_kills|radius_blocks
 ```
 
-For example:
+Example:
 
 ```text
 minecraft:pillager_outpost|minecraft:pillager|10|96
-minecraft:ocean_monument|minecraft:guardian,minecraft:elder_guardian|20|96
+minecraft:monument|minecraft:guardian,minecraft:elder_guardian|20|96
 ```
 
-A kill counts regardless of who or what caused the death. The victim may be outside the physical structure, provided it is within the configured radius of the corresponding structure.
+Optional modded rules use a fifth field for the required mod ID:
+
+```text
+repurposed_structures:outpost_badlands|minecraft:pillager|10|96|repurposed_structures
+towns_and_towers:pillager_outpost_ocean|minecraft:pillager,minecraft:vindicator|10|96|t_and_t
+```
+
+The built-in optional rules cover Repurposed Structures outposts, Terralith's desert outpost, and Towns and Towers pillager outposts. Their defaults use the same 10 deaths and 96-block radius as vanilla Pillager Outposts. Repurposed Structures' Nether outposts count Piglins; Towns and Towers' ocean outpost also counts Vindicators.
+
+Use one rule per structure ID. The radius is measured horizontally from the center of the structure's start chunk, and can be set from 1 to 512 blocks. Each death counts once regardless of its cause or who caused it. A configured mob can count outside the physical structure if it dies within the rule radius.
+
+SANS only inspects chunks that are already loaded while associating a death with nearby structures. It never loads or generates chunks as a side effect of tracking kills.
 
 ## Persistence and performance
 
-SANS stores only per-structure kill progress in `SavedData`. It does not alter generated blocks, structures, chunks, or entities. Cleared structures therefore remain vanilla structures; SANS only suppresses their structure-specific mob spawn override once the configured threshold is reached.
+Kill progress is stored in per-dimension `SavedData`, keyed by structure ID and start chunk. Spawn checks only touch saved progress when vanilla has already selected that structure's spawn override. Once cleared, only the configured mob types are removed from that override; any other mobs in the same override remain eligible to spawn.
 
-Removing SANS restores vanilla spawning behaviour. Its saved data is harmless if the mod is later reinstalled.
+The mod does not edit blocks, structures, chunks, or entities. Removing it restores vanilla spawning. If it is installed again in the same world, saved progress is available again.
 
-## Debugging
+## Debug logging
 
-The common config provides:
+The common config includes:
 
-- `debug` — general SANS debug logging.
-- `debugKills` — log counted kills and progress.
-- `debugSpawnChecks` — log structure spawn interception checks.
-
-`debugSpawnChecks` can be noisy and should normally remain disabled.
+- `debug`: general SANS debug output.
+- `debugKills`: log counted deaths and progress.
+- `debugSpawnChecks`: log structure spawn filtering checks. This can be noisy.

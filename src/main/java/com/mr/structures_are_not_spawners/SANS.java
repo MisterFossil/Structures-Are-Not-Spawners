@@ -14,5 +14,7 @@ public final class SANS {
 
     public SANS(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        modEventBus.addListener(Config::onConfigLoad);
+        modEventBus.addListener(Config::onConfigReload);
     }
 }

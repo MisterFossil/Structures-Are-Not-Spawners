@@ -3,37 +3,32 @@ package com.mr.structures_are_not_spawners.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mr.structures_are_not_spawners.SANSEvents;
+import com.mr.structures_are_not_spawners.StructureManagerExtension;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.random.WeightedRandomList;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.levelgen.structure.StructureSpawnOverride;
-import org.apache.commons.lang3.mutable.MutableBoolean;
+import net.minecraft.world.level.LevelAccessor;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(ChunkGenerator.class)
-public final class ChunkGeneratorMixin implements ChunkGeneratorExtension {
-    @Unique
-    private ServerLevel sans$serverLevel;
-
+public abstract class ChunkGeneratorMixin {
     @ModifyExpressionValue(
             method = "getMobsAt",
-            at = @At(value = "INVOKE", target = "Lorg/apache/commons/lang3/mutable/MutableBoolean;isTrue()Z")
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/levelgen/structure/StructureSpawnOverride;spawns()Lnet/minecraft/util/random/WeightedRandomList;")
     )
-    private boolean sans$preventClearedStructureSpawns(
-            boolean original,
+    private WeightedRandomList<MobSpawnSettings.SpawnerData> sans$filterClearedSpawnList(
+            WeightedRandomList<MobSpawnSettings.SpawnerData> original,
+            @Local(argsOnly = true) StructureManager structureManager,
             @Local(argsOnly = true) BlockPos pos,
-            @Local Structure structure,
-            @Local StructureSpawnOverride override
+            @Local Structure structure
     ) {
-        if (sans$serverLevel == null) return original;
-        return SANSEvents.shouldSuppressStructureSpawn(sans$serverLevel, pos, structure, override, original);
-    }
-
-    @Override
-    public void sans$setServerLevel(ServerLevel level) {
-        this.sans$serverLevel = level;
+        LevelAccessor levelAccessor = ((StructureManagerExtension) structureManager).sans$getLevel();
+        if (!(levelAccessor instanceof ServerLevel level)) return original;
+        return SANSEvents.filterClearedStructureSpawns(level, pos, structure, original);
     }
 }
