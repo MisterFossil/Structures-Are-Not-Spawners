@@ -2,6 +2,7 @@ package com.mr.structures_are_not_spawners;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
@@ -18,7 +19,7 @@ public final class StructureProgressData extends SavedData {
     ).apply(instance, StructureProgressData::new));
 
     public static final SavedDataType<StructureProgressData> TYPE = new SavedDataType<>(
-            SANS.MOD_ID + "/structure_progress",
+            ResourceLocation.fromNamespaceAndPath(SANS.MOD_ID, "structure_progress"),
             StructureProgressData::new,
             CODEC,
             DataFixTypes.LEVEL
