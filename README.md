@@ -1,25 +1,49 @@
+# Structures Are Not Spawners (SANS)
 
-Installation information
-=======
+SANS prevents configured Minecraft structures from acting as effectively endless mob spawners after their associated enemies have been killed in sufficient numbers.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+## Target
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+- Minecraft 1.21.1
+- NeoForge 21.1.211+
+- Java 21
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+## Default rules
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+| Structure | Counted entities | Kills | Radius |
+| --- | --- | ---: | ---: |
+| Ocean Monument | Guardian, Elder Guardian | 20 | 96 blocks |
+| Pillager Outpost | Pillager | 10 | 96 blocks |
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+The rules are server-side and configurable in `config/structures_are_not_spawners-common.toml`.
+
+## Rule format
+
+```text
+structure_id|entity_id,entity_id|required_kills|radius_blocks
+```
+
+For example:
+
+```text
+minecraft:pillager_outpost|minecraft:pillager|10|96
+minecraft:ocean_monument|minecraft:guardian,minecraft:elder_guardian|20|96
+```
+
+A kill counts regardless of who or what caused the death. The victim may be outside the physical structure, provided it is within the configured radius of the corresponding structure.
+
+## Persistence and performance
+
+SANS stores only per-structure kill progress in `SavedData`. It does not alter generated blocks, structures, chunks, or entities. Cleared structures therefore remain vanilla structures; SANS only suppresses their structure-specific mob spawn override once the configured threshold is reached.
+
+Removing SANS restores vanilla spawning behaviour. Its saved data is harmless if the mod is later reinstalled.
+
+## Debugging
+
+The common config provides:
+
+- `debug` — general SANS debug logging.
+- `debugKills` — log counted kills and progress.
+- `debugSpawnChecks` — log structure spawn interception checks.
+
+`debugSpawnChecks` can be noisy and should normally remain disabled.
