@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.mr.structures_are_not_spawners.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ChunkGeneratorMixin",
+    "StructureManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
