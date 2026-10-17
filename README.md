@@ -10,7 +10,7 @@ SANS stops configured structures from continuing to spawn their configured mobs 
 
 | Structure | Counted entities | Required deaths | Counting radius |
 | --- | --- | ---: | ---: |
-| Ocean Monument (`minecraft:monument`) | Guardian, Elder Guardian | 20 | 96 blocks |
+| Ocean Monument | Guardian, Elder Guardian | 20 | 96 blocks |
 | Pillager Outpost | Pillager | 10 | 96 blocks |
 
 Rules are server-side and stored in `config/structures_are_not_spawners-common.toml`.
@@ -48,7 +48,7 @@ SANS only inspects chunks that are already loaded while associating a death with
 
 Kill progress is stored in per-dimension `SavedData`, keyed by structure ID and start chunk. Spawn checks only touch saved progress when vanilla has already selected that structure's spawn override. Once cleared, only the configured mob types are removed from that override; any other mobs in the same override remain eligible to spawn.
 
-The mod does not edit blocks, structures, chunks, or entities. Removing it restores vanilla spawning. If it is installed again in the same world, saved progress is available again.
+Safe to remove and add mid-save - removing it makes vanilla spawn logic work again.
 
 ## Debug logging
 
