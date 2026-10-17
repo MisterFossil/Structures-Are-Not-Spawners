@@ -4,11 +4,7 @@ SANS stops configured structures from continuing to spawn their configured mobs 
 
 ## Supported versions
 
-- Minecraft 1.21.1
-- NeoForge 21.1.211 or newer in the 21.1 line
-- Java 21
-
-The mixin targets Minecraft 1.21.1 internals, so the mod metadata intentionally does not claim compatibility with 1.21.2 or later.
+- Minecraft 1.21.1 + NeoForge 21.1.211 or newer
 
 ## Default rules
 

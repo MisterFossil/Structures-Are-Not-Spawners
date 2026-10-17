@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(ChunkGenerator.class)
+// Intercept the selected structure override's spawn list and filter it on the server
 public abstract class ChunkGeneratorMixin {
     @ModifyExpressionValue(
             method = "getMobsAt",

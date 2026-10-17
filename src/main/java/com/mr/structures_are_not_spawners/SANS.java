@@ -13,6 +13,7 @@ public final class SANS {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public SANS(IEventBus modEventBus, ModContainer modContainer) {
+        // COMMON config is shared by client and server
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
         modEventBus.addListener(Config::onConfigLoad);
         modEventBus.addListener(Config::onConfigReload);

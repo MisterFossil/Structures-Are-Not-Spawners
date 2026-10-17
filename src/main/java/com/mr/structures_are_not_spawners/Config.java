@@ -16,6 +16,7 @@ import java.util.Set;
 public final class Config {
     private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
+    // User-authored rules, plus optional integrations that politely check whether their mod is present.
     public static final ModConfigSpec.ConfigValue<List<? extends String>> RULES = BUILDER
             .comment("Custom rules. Format: structure_id|entity_id,entity_id|required_kills|radius_blocks")
             .comment("Example: minecraft:pillager_outpost|minecraft:pillager|10|96")
@@ -88,7 +89,7 @@ public final class Config {
             .define("debug", false);
 
     public static final ModConfigSpec.BooleanValue DEBUG_SPAWN_CHECKS = BUILDER
-            .comment("Log structure spawn checks. Can be noisy on active servers.")
+            .comment("Log structure spawn checks. Can be noisy.")
             .define("debugSpawnChecks", false);
 
     public static final ModConfigSpec.BooleanValue DEBUG_KILLS = BUILDER
@@ -96,6 +97,7 @@ public final class Config {
             .define("debugKills", false);
 
     static final ModConfigSpec SPEC = BUILDER.build();
+    // Publish immutable lookup tables so hot paths can do cheap map reads instead of config parsing.
     private static volatile Snapshot snapshot = Snapshot.empty();
 
     private Config() {}
@@ -125,6 +127,7 @@ public final class Config {
     }
 
     private static void reload() {
+        // Rebuild everything off to the side, then swap the snapshot in one go.
         List<Rule> rules = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
         Set<ResourceLocation> allStructures = new HashSet<>();
@@ -156,6 +159,7 @@ public final class Config {
                                    Set<ResourceLocation> allStructures,
                                    Set<ResourceLocation> customStructures,
                                    List<Rule> output, List<String> warnings) {
+        // Bad entry warning
         for (String raw : rawRules) {
             String[] parts = raw.split("\\|", -1);
             if ((requireMod && parts.length != 5) || (!requireMod && parts.length != 4 && parts.length != 5)) {
@@ -187,7 +191,7 @@ public final class Config {
                     throw new IllegalArgumentException("invalid required mod id '" + requiredMod + "'");
                 }
 
-                // A custom rule replaces its built-in integration rule for the same structure.
+                // Custom rules should take precedence over built-ins
                 if (requireMod && customStructures.contains(structure)) continue;
                 if (!requiredMod.isEmpty() && !ModList.get().isLoaded(requiredMod)) continue;
                 if (!allStructures.add(structure)) {

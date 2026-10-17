@@ -34,6 +34,7 @@ public final class SANSEvents {
     static void notifyRuleWarnings(List<String> warnings) {
         if (warnings.isEmpty()) return;
 
+        // Handle the config before or after players join
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
 
@@ -62,6 +63,7 @@ public final class SANSEvents {
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getEntity().level() instanceof ServerLevel level)) return;
 
+        // Associating deaths with nearest structure
         LivingEntity victim = event.getEntity();
         List<Match> matches = findMatchingStructures(level, victim.blockPosition(), victim.getType());
         if (matches.isEmpty()) return;
@@ -90,12 +92,13 @@ public final class SANSEvents {
     }
 
     /**
-     * Called only for a structure override that vanilla has already selected at this position.
+     * Called only for a structure override that vanilla has already selected at this position
      * Keeping non-configured entries preserves unrelated mobs from the same override.
      */
     public static WeightedRandomList<MobSpawnSettings.SpawnerData> filterClearedStructureSpawns(
             ServerLevel level, BlockPos pos, Structure structure,
             WeightedRandomList<MobSpawnSettings.SpawnerData> original) {
+        // Most checks return the list unchanged
         if (original.isEmpty() || Config.rules().isEmpty()) return original;
 
         Registry<Structure> structureRegistry = level.registryAccess().registryOrThrow(Registries.STRUCTURE);
@@ -142,6 +145,7 @@ public final class SANSEvents {
     }
 
     private static List<Match> findMatchingStructures(ServerLevel level, BlockPos pos, EntityType<?> entityType) {
+        // Search loaded chunks, death counting must not wake the world generator
         List<Match> matches = new ArrayList<>();
         Registry<EntityType<?>> entityRegistry = level.registryAccess().registryOrThrow(Registries.ENTITY_TYPE);
         ResourceLocation entityId = entityRegistry.getKey(entityType);

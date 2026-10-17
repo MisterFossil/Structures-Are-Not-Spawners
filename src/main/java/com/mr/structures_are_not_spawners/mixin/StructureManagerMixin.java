@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(StructureManager.class)
+// Expose the manager's level without changing vanilla's structure lookup behavior
 public abstract class StructureManagerMixin implements StructureManagerExtension {
     @Shadow @Final private LevelAccessor level;
 
