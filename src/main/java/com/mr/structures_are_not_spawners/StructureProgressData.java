@@ -11,9 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class StructureProgressData extends SavedData {
+    // Saved per world, keyed by structure type and chunk where structure starts
     public static final String STORAGE_ID = SANS.MOD_ID + "_structure_progress";
 
     private final Map<String, Progress> structures;
+    // Skip structure lookups until a rule can be completed
     private final Map<String, Integer> maxKillsByStructure;
 
     public static final Factory<StructureProgressData> FACTORY = new Factory<>(
@@ -59,10 +61,7 @@ public final class StructureProgressData extends SavedData {
         return getKills(key) >= rule.requiredKills();
     }
 
-    /**
-     * Lets the spawn hook skip structure-manager lookups until at least one instance
-     * of this structure could be cleared under the current rule.
-     */
+
     public boolean couldHaveCleared(Config.Rule rule) {
         return maxKillsByStructure.getOrDefault(rule.structureId().toString(), 0) >= rule.requiredKills();
     }

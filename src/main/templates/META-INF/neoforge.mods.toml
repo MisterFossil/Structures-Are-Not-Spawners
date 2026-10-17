@@ -1,15 +1,21 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
+issueTrackerURL="https://github.com/MisterFossil/Structures-Are-Not-Spawners/issues"
 
 [[mods]]
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+authors="LaLuaCreatura"
 description='''
-Prevents configured structure-specific mob spawning after enough configured enemies have been killed near that structure.
-Kills count regardless of who or what caused the death.
+Pillager outposts and ocean monuments stop respawning enemies after you kill enough of them.
+Built-in compatibility with Repurposed Structures, Terralith and Towns and Towers.
+
+Fully configurable – check mod settings.
 '''
+logoFile="icon.png"
+displayURL="https://github.com/MisterFossil/Structures-Are-Not-Spawners"
 
 [[mixins]]
 config="${mod_id}.mixins.json"
